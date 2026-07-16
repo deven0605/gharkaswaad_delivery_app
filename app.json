@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "gharkaswaad_delivery_app",
+    "slug": "gharkaswaad-delivery-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FBF3E4"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.gharkaswaaddeliveryapp"
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
+}
