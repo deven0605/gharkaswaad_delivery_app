@@ -5,6 +5,10 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "jsEngine": "jsc",
+     "experiments": {
+      "bridgeless": false
+    },
     "ios": {
       "supportsTablet": true
     },
@@ -16,7 +20,15 @@
       "package": "com.anonymous.gharkaswaaddeliveryapp"
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "ThaliCloud Partner needs camera access to capture your selfie and KYC documents.",
+          "photosPermission": "ThaliCloud Partner needs photo library access so you can upload your KYC documents."
+        }
+      ]
     ]
   }
 }

@@ -61,7 +61,7 @@ export default function VerifyOtpScreen({ navigation, route }: Props) {
       // FR-1.10 — route by isNewUser / lifecycleState, replacing the auth
       // stack so the back button can't return to Login/VerifyOtp.
       if (response.isNewUser) {
-        navigation.reset({ index: 0, routes: [{ name: 'Registration', params: { mobile } }] });
+        navigation.reset({ index: 0, routes: [{ name: 'PersonalDetails', params: { mobile } }] });
       } else if (response.lifecycleState === 'PENDING_VERIFICATION') {
         navigation.reset({ index: 0, routes: [{ name: 'UnderReview' }] });
       } else {

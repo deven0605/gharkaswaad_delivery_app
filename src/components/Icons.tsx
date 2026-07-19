@@ -180,3 +180,90 @@ export function CloudIcon({ size = 28, color = Colors.brandGreen, opacity = 0.18
     </Svg>
   );
 }
+
+// ── M2 Registration & KYC (S04-S06) ─────────────────────────────────────────
+
+export function CameraIcon({ size = 26, color = Colors.brandGreen }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4 8.5A1.5 1.5 0 015.5 7h2l1-2h7l1 2h2A1.5 1.5 0 0120 8.5v9A1.5 1.5 0 0118.5 19h-13A1.5 1.5 0 014 17.5v-9z"
+        stroke={color}
+        strokeWidth={1.7}
+        strokeLinejoin="round"
+      />
+      <Circle cx={12} cy={13} r={3.4} stroke={color} strokeWidth={1.7} />
+    </Svg>
+  );
+}
+
+export function CheckCircleIcon({ size = 18, color = Colors.online }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={9.5} fill={color} />
+      <Path d="M8 12.3l2.6 2.6L16.3 9" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function AlertCircleIcon({ size = 18, color = Colors.error }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={9.5} stroke={color} strokeWidth={1.8} />
+      <Path d="M12 7.5v5.5" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Circle cx={12} cy={16.3} r={1.1} fill={color} />
+    </Svg>
+  );
+}
+
+export function IdCardIcon({ size = 22, color = Colors.brandGreen }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M3 6.5A1.5 1.5 0 014.5 5h15A1.5 1.5 0 0121 6.5v11a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 17.5v-11z" stroke={color} strokeWidth={1.6} />
+      <Circle cx={8.4} cy={11} r={2} stroke={color} strokeWidth={1.5} />
+      <Path d="M5.6 16c.5-1.6 1.7-2.4 2.8-2.4s2.3.8 2.8 2.4M14 9.5h5M14 13h5M14 16h3" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function BicycleIcon({ size = 28, color = Colors.brandGreen }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={5.5} cy={17} r={3} stroke={color} strokeWidth={1.6} />
+      <Circle cx={18.5} cy={17} r={3} stroke={color} strokeWidth={1.6} />
+      <Path d="M5.5 17l4-9h4l3 9M9.5 8h3M9.5 8l3.5 5.5H18.5" stroke={color} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+      <Circle cx={14.5} cy={6.5} r={1.4} fill={color} />
+    </Svg>
+  );
+}
+
+export function ScooterIcon({ size = 28, color = Colors.brandGreen }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={5.5} cy={17.5} r={2.5} stroke={color} strokeWidth={1.6} />
+      <Circle cx={17.5} cy={17.5} r={2.5} stroke={color} strokeWidth={1.6} />
+      <Path
+        d="M5.5 17.5h3l2-6h4.5c1.7 0 3 1.3 3 3v3M10.5 11.5H8M15 6.5h2.2M16.3 6.5l1.2 4.5"
+        stroke={color}
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function WalkIcon({ size = 28, color = Colors.brandGreen }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={13.5} cy={5} r={1.8} fill={color} />
+      <Path
+        d="M12 8l-2.5 2 .5 4-3 4M12 8l3 1.5-1 3.5 2.5 3.5M9.5 10l3.5-.5"
+        stroke={color}
+        strokeWidth={1.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
