@@ -10,14 +10,24 @@
       "bridgeless": false
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": ["location"]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#FBF3E4"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.gharkaswaaddeliveryapp"
+      "package": "com.anonymous.gharkaswaaddeliveryapp",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
+      ]
     },
     "plugins": [
       "expo-secure-store",
@@ -27,6 +37,16 @@
         {
           "cameraPermission": "ThaliCloud Partner needs camera access to capture your selfie and KYC documents.",
           "photosPermission": "ThaliCloud Partner needs photo library access so you can upload your KYC documents."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "ThaliCloud Partner uses your location in the background to track your deliveries and match you with nearby orders while you're online.",
+          "locationAlwaysPermission": "ThaliCloud Partner uses your location in the background to track your deliveries and match you with nearby orders while you're online.",
+          "locationWhenInUsePermission": "ThaliCloud Partner uses your location to match you with nearby orders while you're online.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ]
     ]

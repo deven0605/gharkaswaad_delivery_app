@@ -24,7 +24,6 @@ import {
   DocumentSide,
   DocumentType,
   useGetPartnerProfileQuery,
-  useSubmitApplicationMutation,
   useUploadDocumentMutation,
 } from '../store/deliveryApi';
 import { extractApiErrorMessage } from '../store/authApi';
@@ -49,16 +48,14 @@ function rowKey(type: DocumentType, side?: DocumentSide): string {
   return `${type}-${side ?? 'single'}`;
 }
 
-// S06 — Registration: Document Upload (M2.3). Final step of the wizard —
-// "Submit Application" hands off to Ops review (S08 / UnderReview).
+// S06 — Registration: Document Upload (M2.3). Hands off to Bank Details
+// (S07 / M2.4), the last step before Submission & Review.
 export default function DocumentUploadScreen({ navigation }: Props) {
   const { data: profile, isLoading: isProfileLoading } = useGetPartnerProfileQuery();
   const [uploadDocument] = useUploadDocumentMutation();
-  const [submitApplication, { isLoading: isSubmitting }] = useSubmitApplicationMutation();
 
   const [rowStatus, setRowStatus] = useState<Record<string, DocumentRowStatus>>({});
   const [rowError, setRowError] = useState<Record<string, string | undefined>>({});
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const rows: DocRowSpec[] = profile?.vehicleType === 'BIKE' ? [...BASE_ROWS, ...MOTORIZED_ROWS] : BASE_ROWS;
 
@@ -102,15 +99,9 @@ export default function DocumentUploadScreen({ navigation }: Props) {
     ]);
   };
 
-  const handleSubmit = async () => {
-    if (!allUploaded || isSubmitting) return;
-    setSubmitError(null);
-    try {
-      await submitApplication().unwrap();
-      navigation.reset({ index: 0, routes: [{ name: 'UnderReview' }] });
-    } catch (err) {
-      setSubmitError(extractApiErrorMessage(err, 'Could not submit your application. Please try again.'));
-    }
+  const handleNext = () => {
+    if (!allUploaded) return;
+    navigation.navigate('BankDetails');
   };
 
   return (
@@ -128,7 +119,7 @@ export default function DocumentUploadScreen({ navigation }: Props) {
         >
           <BackButton onPress={() => navigation.goBack()} />
 
-          <StepProgressHeader step={3} total={3} label="Upload Documents" />
+          <StepProgressHeader step={3} total={4} label="Upload Documents" />
           <Text style={styles.subtitle}>Clear photos, all corners visible</Text>
 
           {isProfileLoading ? (
@@ -150,22 +141,14 @@ export default function DocumentUploadScreen({ navigation }: Props) {
             </View>
           )}
 
-          {submitError && <Text style={styles.errorText}>{submitError}</Text>}
-
           <TouchableOpacity
-            style={[styles.submitBtn, (!allUploaded || isSubmitting) && styles.submitBtnDisabled]}
+            style={[styles.submitBtn, !allUploaded && styles.submitBtnDisabled]}
             activeOpacity={0.85}
-            disabled={!allUploaded || isSubmitting}
-            onPress={handleSubmit}
+            disabled={!allUploaded}
+            onPress={handleNext}
           >
-            {isSubmitting ? (
-              <ActivityIndicator color={Colors.white} />
-            ) : (
-              <>
-                <Text style={styles.submitBtnText}>Submit Application</Text>
-                <ArrowRightIcon size={18} color={Colors.white} />
-              </>
-            )}
+            <Text style={styles.submitBtnText}>Next</Text>
+            <ArrowRightIcon size={18} color={Colors.white} />
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
@@ -200,14 +183,6 @@ const styles = StyleSheet.create({
   rowsWrap: {
     width: SW - 48,
     marginBottom: 8,
-  },
-
-  errorText: {
-    width: SW - 48,
-    color: Colors.error,
-    fontSize: 12.5,
-    marginBottom: 12,
-    textAlign: 'center',
   },
 
   submitBtn: {

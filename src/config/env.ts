@@ -10,3 +10,8 @@ import { Platform } from 'react-native';
 const DEFAULT_GATEWAY_URL = Platform.OS === 'android' ? 'http://192.168.1.10:8080' : 'http://localhost:8080';
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? DEFAULT_GATEWAY_URL;
+
+// FR-3.3 — STOMP-over-WebSocket endpoint, proxied through the same gateway
+// (gateway-service's /ws/** route forwards to delivery-service). Same host,
+// ws(s) scheme instead of http(s).
+export const WS_BASE_URL = `${API_BASE_URL.replace(/^http/, 'ws')}/ws`;

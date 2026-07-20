@@ -7,6 +7,16 @@ export type VehicleType = 'BICYCLE' | 'BIKE' | 'ON_FOOT';
 export type DocumentType = 'AADHAAR' | 'PAN' | 'DRIVING_LICENSE' | 'VEHICLE_RC';
 export type DocumentSide = 'FRONT' | 'BACK';
 export type DocumentStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
+export type DutyStatus = 'OFFLINE' | 'ONLINE' | 'ON_DELIVERY';
+export type AssignmentStatus =
+  | 'OFFERED'
+  | 'ACCEPTED'
+  | 'DECLINED'
+  | 'EXPIRED'
+  | 'CANCELLED_BY_PARTNER'
+  | 'CANCELLED_BY_CUSTOMER'
+  | 'CANCELLED_BY_KITCHEN'
+  | 'COMPLETED';
 
 export interface DocumentResponse {
   id: string;
@@ -29,9 +39,51 @@ export interface PartnerProfileResponse {
   vehicleType: VehicleType | null;
   vehicleNumber: string | null;
   vehicleModel: string | null;
+  bankAccountHolderName: string | null;
+  bankAccountNumber: string | null;
+  bankIfscCode: string | null;
+  upiId: string | null;
   lifecycleState: PartnerLifecycleState;
   registrationComplete: boolean;
+  dutyStatus: DutyStatus;
+  rating: number | null;
   documents: DocumentResponse[];
+}
+
+export interface ActiveDeliveryResponse {
+  assignmentId: string;
+  orderId: string;
+  status: string;
+  kitchenName: string;
+  dropLocality: string;
+  estimatedPayoutPaise: number;
+  estimatedDistanceKm: number;
+  itemCount: number;
+}
+
+// M4 — FR-4.1/FR-4.2. Same shape whether it arrives via the
+// /topic/partner/{id}/request STOMP push or the GET .../assignments/current
+// resume call.
+export interface AssignmentResponse {
+  id: string;
+  orderId: string;
+  kitchenName: string;
+  kitchenDistanceKm: number;
+  dropLocality: string;
+  estimatedPayoutPaise: number;
+  estimatedDistanceKm: number;
+  itemCount: number;
+  status: AssignmentStatus;
+  offeredAt: string;
+  expiresAt: string;
+}
+
+export interface DashboardSummaryResponse {
+  dutyStatus: DutyStatus;
+  todayDeliveries: number;
+  todayEarningsPaise: number;
+  rating: number | null;
+  activeDelivery: ActiveDeliveryResponse | null;
 }
 
 /**
@@ -57,6 +109,13 @@ export interface VehicleDetailsPayload {
   vehicleType: VehicleType;
   vehicleNumber?: string;
   vehicleModel?: string;
+}
+
+export interface BankDetailsPayload {
+  accountHolderName?: string;
+  accountNumber?: string;
+  ifscCode?: string;
+  upiId?: string;
 }
 
 export interface UploadDocumentPayload {
@@ -91,7 +150,7 @@ export const deliveryApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ['PartnerProfile'],
+  tagTypes: ['PartnerProfile', 'DashboardSummary', 'CurrentAssignment'],
   endpoints: (builder) => ({
     getPartnerProfile: builder.query<PartnerProfileResponse, void>({
       query: () => ({ url: '' }),
@@ -114,6 +173,12 @@ export const deliveryApi = createApi({
       transformResponse: (response: { data: PartnerProfileResponse }) => response.data,
       invalidatesTags: ['PartnerProfile'],
     }),
+    // FR-2.8 — either the bank trio or a UPI id is sufficient.
+    saveBankDetails: builder.mutation<PartnerProfileResponse, BankDetailsPayload>({
+      query: (body) => ({ url: '/bank-details', method: 'PUT', body }),
+      transformResponse: (response: { data: PartnerProfileResponse }) => response.data,
+      invalidatesTags: ['PartnerProfile'],
+    }),
     // FR-2.4-FR-2.7 — re-uploading the same (type, side) replaces the prior attempt.
     uploadDocument: builder.mutation<DocumentResponse, UploadDocumentPayload>({
       query: ({ type, side, file }) => ({
@@ -130,6 +195,47 @@ export const deliveryApi = createApi({
       transformResponse: (response: { data: PartnerProfileResponse }) => response.data,
       invalidatesTags: ['PartnerProfile'],
     }),
+    // FR-3.1/FR-3.4
+    updateDutyStatus: builder.mutation<PartnerProfileResponse, { status: 'ONLINE' | 'OFFLINE' }>({
+      query: (body) => ({ url: '/duty-status', method: 'PUT', body }),
+      transformResponse: (response: { data: PartnerProfileResponse }) => response.data,
+      invalidatesTags: ['PartnerProfile', 'DashboardSummary'],
+    }),
+    // FR-3.6/FR-3.8
+    getDashboardSummary: builder.query<DashboardSummaryResponse, void>({
+      query: () => ({ url: '/dashboard-summary' }),
+      transformResponse: (response: { data: DashboardSummaryResponse }) => response.data,
+      providesTags: ['DashboardSummary'],
+    }),
+    // M4.1 — resume support; the backend omits `data` entirely (not `null`)
+    // when there's nothing active, hence the `?? null` coercion.
+    getCurrentAssignment: builder.query<AssignmentResponse | null, void>({
+      query: () => ({ url: '/assignments/current' }),
+      transformResponse: (response: { data?: AssignmentResponse }) => response.data ?? null,
+      providesTags: ['CurrentAssignment'],
+    }),
+    // FR-4.4
+    acceptAssignment: builder.mutation<AssignmentResponse, { assignmentId: string }>({
+      query: ({ assignmentId }) => ({ url: `/assignments/${assignmentId}/accept`, method: 'POST' }),
+      transformResponse: (response: { data: AssignmentResponse }) => response.data,
+      invalidatesTags: ['CurrentAssignment', 'DashboardSummary'],
+    }),
+    // FR-4.4/FR-4.5
+    declineAssignment: builder.mutation<AssignmentResponse, { assignmentId: string }>({
+      query: ({ assignmentId }) => ({ url: `/assignments/${assignmentId}/decline`, method: 'POST' }),
+      transformResponse: (response: { data: AssignmentResponse }) => response.data,
+      invalidatesTags: ['CurrentAssignment', 'DashboardSummary'],
+    }),
+    // FR-4.8
+    cancelAssignment: builder.mutation<AssignmentResponse, { assignmentId: string; reason: string }>({
+      query: ({ assignmentId, reason }) => ({
+        url: `/assignments/${assignmentId}/cancel`,
+        method: 'POST',
+        body: { reason },
+      }),
+      transformResponse: (response: { data: AssignmentResponse }) => response.data,
+      invalidatesTags: ['CurrentAssignment', 'DashboardSummary'],
+    }),
   }),
 });
 
@@ -138,6 +244,13 @@ export const {
   useLazyGetPartnerProfileQuery,
   useSavePersonalDetailsMutation,
   useSaveVehicleDetailsMutation,
+  useSaveBankDetailsMutation,
   useUploadDocumentMutation,
   useSubmitApplicationMutation,
+  useUpdateDutyStatusMutation,
+  useGetDashboardSummaryQuery,
+  useGetCurrentAssignmentQuery,
+  useAcceptAssignmentMutation,
+  useDeclineAssignmentMutation,
+  useCancelAssignmentMutation,
 } = deliveryApi;

@@ -7,6 +7,7 @@ import VerifyOtpScreen from '../screens/VerifyOtpScreen';
 import PersonalDetailsScreen from '../screens/PersonalDetailsScreen';
 import VehicleDetailsScreen from '../screens/VehicleDetailsScreen';
 import DocumentUploadScreen from '../screens/DocumentUploadScreen';
+import BankDetailsScreen from '../screens/BankDetailsScreen';
 import UnderReviewScreen from '../screens/UnderReviewScreen';
 import HomeScreen from '../screens/HomeScreen';
 
@@ -21,6 +22,7 @@ export default function AuthNavigator() {
       <Stack.Screen name="PersonalDetails" component={PersonalDetailsScreen} />
       <Stack.Screen name="VehicleDetails" component={VehicleDetailsScreen} />
       <Stack.Screen name="DocumentUpload" component={DocumentUploadScreen} />
+      <Stack.Screen name="BankDetails" component={BankDetailsScreen} />
       <Stack.Screen name="UnderReview" component={UnderReviewScreen} />
       <Stack.Screen name="Home" component={HomeScreen} />
     </Stack.Navigator>

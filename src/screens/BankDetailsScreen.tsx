@@ -15,45 +15,55 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors } from '../theme/colors';
 import { commonStyles, SW } from '../theme/styles';
 import { AuthStackParamList } from '../navigation/types';
-import { ArrowRightIcon, BicycleIcon, ScooterIcon, WalkIcon } from '../components/Icons';
+import { ArrowRightIcon } from '../components/Icons';
 import BackButton from '../components/BackButton';
 import StepProgressHeader from '../components/StepProgressHeader';
-import { VehicleType, useSaveVehicleDetailsMutation } from '../store/deliveryApi';
+import { useSaveBankDetailsMutation, useSubmitApplicationMutation } from '../store/deliveryApi';
 import { extractApiErrorMessage } from '../store/authApi';
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'VehicleDetails'>;
+type Props = NativeStackScreenProps<AuthStackParamList, 'BankDetails'>;
 
-const VEHICLE_OPTIONS: { type: VehicleType; label: string; Icon: typeof BicycleIcon }[] = [
-  { type: 'BICYCLE', label: 'Bicycle', Icon: BicycleIcon },
-  { type: 'BIKE', label: 'Bike / Scooter', Icon: ScooterIcon },
-  { type: 'ON_FOOT', label: 'On Foot', Icon: WalkIcon },
-];
+type PayoutMethod = 'BANK' | 'UPI';
 
-// S05 — Registration: Vehicle Details (M2.2).
-export default function VehicleDetailsScreen({ navigation }: Props) {
-  const [vehicleType, setVehicleType] = useState<VehicleType | null>(null);
-  const [vehicleNumber, setVehicleNumber] = useState('');
-  const [vehicleModel, setVehicleModel] = useState('');
+const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+const UPI_REGEX = /^[\w.\-]{2,256}@[a-zA-Z]{2,64}$/;
+
+// S07 — Registration: Bank Details (M2.4). Last step of the wizard —
+// "Submit Application" hands off to Ops review (S08 / UnderReview).
+export default function BankDetailsScreen({ navigation }: Props) {
+  const [method, setMethod] = useState<PayoutMethod>('BANK');
+  const [accountHolderName, setAccountHolderName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [ifscCode, setIfscCode] = useState('');
+  const [upiId, setUpiId] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const [saveVehicle, { isLoading }] = useSaveVehicleDetailsMutation();
+  const [saveBankDetails, { isLoading: isSaving }] = useSaveBankDetailsMutation();
+  const [submitApplication, { isLoading: isSubmitting }] = useSubmitApplicationMutation();
+  const isLoading = isSaving || isSubmitting;
 
-  // FR-2.3 — vehicle number required only when motorized.
-  const isMotorized = vehicleType === 'BIKE';
-  const isValid = vehicleType !== null && (!isMotorized || vehicleNumber.trim().length > 0);
+  const isValid =
+    method === 'BANK'
+      ? accountHolderName.trim().length > 0 && accountNumber.trim().length > 0 && IFSC_REGEX.test(ifscCode.trim().toUpperCase())
+      : UPI_REGEX.test(upiId.trim());
 
-  const handleNext = async () => {
-    if (!isValid || !vehicleType || isLoading) return;
+  const handleSubmit = async () => {
+    if (!isValid || isLoading) return;
     setError(null);
     try {
-      await saveVehicle({
-        vehicleType,
-        vehicleNumber: isMotorized ? vehicleNumber.trim() : undefined,
-        vehicleModel: isMotorized && vehicleModel.trim() ? vehicleModel.trim() : undefined,
-      }).unwrap();
-      navigation.navigate('DocumentUpload');
+      await saveBankDetails(
+        method === 'BANK'
+          ? {
+              accountHolderName: accountHolderName.trim(),
+              accountNumber: accountNumber.trim(),
+              ifscCode: ifscCode.trim().toUpperCase(),
+            }
+          : { upiId: upiId.trim() }
+      ).unwrap();
+      await submitApplication().unwrap();
+      navigation.reset({ index: 0, routes: [{ name: 'UnderReview' }] });
     } catch (err) {
-      setError(extractApiErrorMessage(err, 'Could not save vehicle details. Please try again.'));
+      setError(extractApiErrorMessage(err, 'Could not submit your application. Please try again.'));
     }
   };
 
@@ -72,45 +82,68 @@ export default function VehicleDetailsScreen({ navigation }: Props) {
         >
           <BackButton onPress={() => navigation.goBack()} />
 
-          <StepProgressHeader step={2} total={4} label="Your Vehicle" />
-          <Text style={styles.subtitle}>How do you deliver?</Text>
+          <StepProgressHeader step={4} total={4} label="Bank Details" />
+          <Text style={styles.subtitle}>How should we pay you?</Text>
 
-          <View style={styles.optionsGrid}>
-            {VEHICLE_OPTIONS.map(({ type, label, Icon }) => {
-              const selected = vehicleType === type;
+          <View style={styles.tabRow}>
+            {(['BANK', 'UPI'] as const).map((tab) => {
+              const selected = method === tab;
               return (
                 <TouchableOpacity
-                  key={type}
-                  style={[styles.optionCard, selected && styles.optionCardActive]}
+                  key={tab}
+                  style={[styles.tab, selected && styles.tabActive]}
                   activeOpacity={0.85}
-                  onPress={() => setVehicleType(type)}
+                  onPress={() => setMethod(tab)}
                 >
-                  <Icon size={30} color={selected ? Colors.white : Colors.brandGreen} />
-                  <Text style={[styles.optionLabel, selected && styles.optionLabelActive]}>{label}</Text>
+                  <Text style={[styles.tabText, selected && styles.tabTextActive]}>
+                    {tab === 'BANK' ? 'Bank Account' : 'UPI'}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
 
-          {isMotorized && (
+          {method === 'BANK' ? (
             <>
-              <Text style={styles.label}>Vehicle Number *</Text>
+              <Text style={styles.label}>Account Holder Name *</Text>
               <TextInput
                 style={styles.input}
-                placeholder="DL 04 AB 1234"
+                placeholder="Ravi Kumar"
                 placeholderTextColor={Colors.textSecondary}
-                autoCapitalize="characters"
-                value={vehicleNumber}
-                onChangeText={setVehicleNumber}
+                value={accountHolderName}
+                onChangeText={setAccountHolderName}
               />
 
-              <Text style={styles.label}>Vehicle Model (optional)</Text>
+              <Text style={styles.label}>Account Number *</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Honda Activa"
+                placeholder="123456789012"
                 placeholderTextColor={Colors.textSecondary}
-                value={vehicleModel}
-                onChangeText={setVehicleModel}
+                keyboardType="number-pad"
+                value={accountNumber}
+                onChangeText={setAccountNumber}
+              />
+
+              <Text style={styles.label}>IFSC Code *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="SBIN0001234"
+                placeholderTextColor={Colors.textSecondary}
+                autoCapitalize="characters"
+                value={ifscCode}
+                onChangeText={setIfscCode}
+              />
+            </>
+          ) : (
+            <>
+              <Text style={styles.label}>UPI ID *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="ravikumar@upi"
+                placeholderTextColor={Colors.textSecondary}
+                autoCapitalize="none"
+                value={upiId}
+                onChangeText={setUpiId}
               />
             </>
           )}
@@ -121,13 +154,13 @@ export default function VehicleDetailsScreen({ navigation }: Props) {
             style={[styles.nextBtn, (!isValid || isLoading) && styles.nextBtnDisabled]}
             activeOpacity={0.85}
             disabled={!isValid || isLoading}
-            onPress={handleNext}
+            onPress={handleSubmit}
           >
             {isLoading ? (
               <ActivityIndicator color={Colors.white} />
             ) : (
               <>
-                <Text style={styles.nextBtnText}>Next</Text>
+                <Text style={styles.nextBtnText}>Submit Application</Text>
                 <ArrowRightIcon size={18} color={Colors.white} />
               </>
             )}
@@ -157,34 +190,31 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  optionsGrid: {
+  tabRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     width: SW - 48,
-    gap: 12,
     marginBottom: 20,
+    gap: 10,
   },
-  optionCard: {
-    width: (SW - 48 - 12) / 2,
-    borderWidth: 1.6,
+  tab: {
+    flex: 1,
+    borderWidth: 1.4,
     borderColor: Colors.border,
-    borderRadius: 16,
-    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    paddingVertical: 12,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
+    backgroundColor: Colors.surface,
   },
-  optionCardActive: {
+  tabActive: {
     borderColor: Colors.brandGreen,
     backgroundColor: Colors.brandGreen,
   },
-  optionLabel: {
+  tabText: {
     fontSize: 13.5,
     fontWeight: '700',
-    color: Colors.textPrimary,
-    marginTop: 8,
+    color: Colors.textSecondary,
   },
-  optionLabelActive: {
+  tabTextActive: {
     color: Colors.white,
   },
 

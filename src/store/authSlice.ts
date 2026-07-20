@@ -41,8 +41,14 @@ const authSlice = createSlice({
       state.phone = null;
       state.lifecycleState = null;
     },
+    // Keeps the redux copy of lifecycleState in sync after a Submission &
+    // Review "Check Status" refetch reveals an Ops approve/reject (FR-2.10),
+    // without needing a fresh OTP login to pick up the change.
+    setLifecycleState(state, action: PayloadAction<PartnerLifecycleState>) {
+      state.lifecycleState = action.payload;
+    },
   },
 });
 
-export const { setCredentials, clearCredentials } = authSlice.actions;
+export const { setCredentials, clearCredentials, setLifecycleState } = authSlice.actions;
 export default authSlice.reducer;

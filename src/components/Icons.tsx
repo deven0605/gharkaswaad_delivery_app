@@ -267,3 +267,39 @@ export function WalkIcon({ size = 28, color = Colors.brandGreen }: IconProps) {
     </Svg>
   );
 }
+
+// ── M3 Availability & Home Dashboard ────────────────────────────────────────
+
+export function RupeeIcon({ size = 18, color = Colors.textPrimary }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M7 5h10M7 9h10M7 5c4.5 0 7 1.3 7 4s-2.5 4-7 4h-.5L15 19"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function StarIcon({ size = 16, color = Colors.warning }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path
+        d="M12 2.5l2.85 6.32 6.9.68-5.2 4.68 1.55 6.82L12 17.6l-6.1 3.4 1.55-6.82-5.2-4.68 6.9-.68L12 2.5z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
+export function DeliveryBoxIcon({ size = 18, color = Colors.textPrimary }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M3 8l9-4.5L21 8l-9 4.5L3 8z" stroke={color} strokeWidth={1.6} strokeLinejoin="round" />
+      <Path d="M3 8v9l9 4.5V12.5M21 8v9l-9 4.5" stroke={color} strokeWidth={1.6} strokeLinejoin="round" />
+    </Svg>
+  );
+}

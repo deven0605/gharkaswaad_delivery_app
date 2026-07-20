@@ -91,7 +91,7 @@ export default function PersonalDetailsScreen({ navigation }: Props) {
         >
           <BackButton onPress={() => navigation.goBack()} />
 
-          <StepProgressHeader step={1} total={3} label="Tell us about you" />
+          <StepProgressHeader step={1} total={4} label="Tell us about you" />
 
           <TouchableOpacity style={styles.selfieBox} activeOpacity={0.85} onPress={handleCaptureSelfie}>
             {isCapturing ? (
