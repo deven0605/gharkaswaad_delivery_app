@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
+  Image,
   ImageBackground,
   ScrollView,
   StyleSheet,
@@ -12,9 +13,11 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AuthStackParamList } from '../navigation/types';
 import { Colors } from '../theme/colors';
 import { commonStyles, SW } from '../theme/styles';
-import { DeliveryBoxIcon, LocationPinIcon, RupeeIcon, StarIcon } from '../components/Icons';
+import { AlertCircleIcon, BellIcon, DeliveryBoxIcon, LocationPinIcon, PersonIcon, RupeeIcon, StarIcon } from '../components/Icons';
 import PlaceholderScreen from '../components/PlaceholderScreen';
 import IncomingRequestModal from '../components/IncomingRequestModal';
 import ActiveAssignmentModal from '../components/ActiveAssignmentModal';
@@ -25,9 +28,11 @@ import {
   useAcceptAssignmentMutation,
   useCancelAssignmentMutation,
   useDeclineAssignmentMutation,
+  useGetCashInHandQuery,
   useGetCurrentAssignmentQuery,
   useGetDashboardSummaryQuery,
   useGetPartnerProfileQuery,
+  useGetUnreadNotificationCountQuery,
   useUpdateDutyStatusMutation,
 } from '../store/deliveryApi';
 import { extractApiErrorMessage } from '../store/authApi';
@@ -42,9 +47,11 @@ function secondsUntil(iso: string): number {
   return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 1000));
 }
 
+type Props = NativeStackScreenProps<AuthStackParamList, 'Home'>;
+
 // S09 — Home Dashboard (M3.1/M3.2). Reached for APPROVED/SUSPENDED partners
 // after OTP verification (FR-1.10).
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }: Props) {
   const dispatch = useAppDispatch();
   const lifecycleState = useAppSelector((state) => state.auth.lifecycleState);
   const accessToken = useAppSelector((state) => state.auth.accessToken);
@@ -54,6 +61,9 @@ export default function HomeScreen() {
     pollingInterval: 30000,
   });
   const { data: resumedAssignment } = useGetCurrentAssignmentQuery();
+  const { data: cashInHand } = useGetCashInHandQuery();
+  // M12/FR-12.2 — polled like the dashboard summary; no live socket push for this yet.
+  const { data: unreadCount } = useGetUnreadNotificationCountQuery(undefined, { pollingInterval: 30000 });
   const [updateDutyStatus, { isLoading: isUpdatingDuty }] = useUpdateDutyStatusMutation();
   const [acceptAssignment, { isLoading: isAccepting }] = useAcceptAssignmentMutation();
   const [declineAssignment] = useDeclineAssignmentMutation();
@@ -88,6 +98,30 @@ export default function HomeScreen() {
       setIncomingAssignment(resumedAssignment);
     }
   }, [resumedAssignment]);
+
+  // M5/M6 — resume straight into the Pickup/Drop flow if the app was last
+  // closed mid-delivery (FR-3.8's "deep-links into the in-progress delivery
+  // flow"). DELIVERED never resumes here — it's terminal, and by the time the
+  // app could observe it the assignment has already dropped out of "current".
+  useEffect(() => {
+    switch (resumedAssignment?.status) {
+      case 'ACCEPTED':
+        navigation.navigate('PickupNavigation');
+        break;
+      case 'ARRIVED_AT_KITCHEN':
+        navigation.navigate('PickupVerification');
+        break;
+      case 'PICKED_UP':
+      case 'OUT_FOR_DELIVERY':
+        navigation.navigate('DropNavigation');
+        break;
+      case 'ARRIVED_AT_DROP':
+        navigation.navigate('DeliveryVerification');
+        break;
+      default:
+        break;
+    }
+  }, [resumedAssignment, navigation]);
 
   // FR-4.3 — countdown that auto-declines when it reaches zero.
   useEffect(() => {
@@ -182,7 +216,26 @@ export default function HomeScreen() {
     }
   };
 
+  // M5/M6 — routes into the right Pickup/Drop screen by status; any other
+  // status falls back to the summary modal.
   const handleActiveDeliveryPress = () => {
+    switch (summary?.activeDelivery?.status) {
+      case 'ACCEPTED':
+        navigation.navigate('PickupNavigation');
+        return;
+      case 'ARRIVED_AT_KITCHEN':
+        navigation.navigate('PickupVerification');
+        return;
+      case 'PICKED_UP':
+      case 'OUT_FOR_DELIVERY':
+        navigation.navigate('DropNavigation');
+        return;
+      case 'ARRIVED_AT_DROP':
+        navigation.navigate('DeliveryVerification');
+        return;
+      default:
+        break;
+    }
     setCancelError(null);
     setShowActiveModal(true);
   };
@@ -222,33 +275,79 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <View>
-              <Text style={styles.greeting}>{profile?.name ? `Hi, ${profile.name.split(' ')[0]}` : 'Welcome'}</Text>
-              <View style={styles.statusPillRow}>
-                <View style={[styles.statusDot, isOnDelivery ? styles.dotOnDelivery : isOnline ? styles.dotOnline : styles.dotOffline]} />
-                <Text style={styles.statusText}>
-                  {isOnDelivery ? 'On Delivery' : isOnline ? 'Online' : 'Offline'}
-                </Text>
+            <View style={styles.headerLeft}>
+              <TouchableOpacity style={styles.avatarBtn} activeOpacity={0.85} onPress={() => navigation.navigate('Profile')}>
+                {profile?.profilePhotoUrl ? (
+                  <Image source={{ uri: profile.profilePhotoUrl }} style={styles.avatarImage} />
+                ) : (
+                  <PersonIcon size={20} color={Colors.brandGreen} />
+                )}
+              </TouchableOpacity>
+              <View>
+                <Text style={styles.greeting}>{profile?.name ? `Hi, ${profile.name.split(' ')[0]}` : 'Welcome'}</Text>
+                <View style={styles.statusPillRow}>
+                  <View style={[styles.statusDot, isOnDelivery ? styles.dotOnDelivery : isOnline ? styles.dotOnline : styles.dotOffline]} />
+                  <Text style={styles.statusText}>
+                    {isOnDelivery ? 'On Delivery' : isOnline ? 'Online' : 'Offline'}
+                  </Text>
+                </View>
               </View>
             </View>
 
-            <View style={styles.toggleWrap}>
-              <Switch
-                value={isOnline || isOnDelivery}
-                onValueChange={handleToggle}
-                disabled={!isApproved || isUpdatingDuty || isTogglePending || isOnDelivery}
-                trackColor={{ false: Colors.border, true: Colors.online }}
-                thumbColor={Colors.white}
-              />
-              {!isApproved && <Text style={styles.toggleHint}>Approval required</Text>}
+            <View style={styles.headerRight}>
+              <TouchableOpacity style={styles.bellBtn} activeOpacity={0.85} onPress={() => navigation.navigate('Notifications')}>
+                <BellIcon size={20} color={Colors.textPrimary} />
+                {!!unreadCount && (
+                  <View style={styles.bellBadge}>
+                    <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <View style={styles.toggleWrap}>
+                <Switch
+                  value={isOnline || isOnDelivery}
+                  onValueChange={handleToggle}
+                  disabled={!isApproved || isUpdatingDuty || isTogglePending || isOnDelivery}
+                  trackColor={{ false: Colors.border, true: Colors.online }}
+                  thumbColor={Colors.white}
+                />
+                {!isApproved && <Text style={styles.toggleHint}>Approval required</Text>}
+              </View>
             </View>
           </View>
 
           <View style={styles.statsRow}>
-            <StatTile icon={<DeliveryBoxIcon size={18} color={Colors.brandGreen} />} label="Today's Deliveries" value={isSummaryLoading ? '—' : String(summary?.todayDeliveries ?? 0)} />
+            <TouchableOpacity activeOpacity={0.8} style={styles.statTileTouchable} onPress={() => navigation.navigate('DeliveryHistory')}>
+              <StatTile icon={<DeliveryBoxIcon size={18} color={Colors.brandGreen} />} label="Today's Deliveries" value={isSummaryLoading ? '—' : String(summary?.todayDeliveries ?? 0)} />
+            </TouchableOpacity>
             <StatTile icon={<RupeeIcon size={18} color={Colors.brandGreen} />} label="Today's Earnings" value={isSummaryLoading ? '—' : formatRupees(summary?.todayEarningsPaise ?? 0)} />
-            <StatTile icon={<StarIcon size={16} />} label="Rating" value={summary?.rating != null ? summary.rating.toFixed(1) : '—'} />
+            <TouchableOpacity activeOpacity={0.8} style={styles.statTileTouchable} onPress={() => navigation.navigate('RatingsFeedback')}>
+              <StatTile icon={<StarIcon size={16} />} label="Rating" value={summary?.rating != null ? summary.rating.toFixed(1) : '—'} />
+            </TouchableOpacity>
           </View>
+
+          {/* FR-10.3 — advisory banner, no auto-suspension in Phase 1. */}
+          {summary?.lowRatingWarning && (
+            <TouchableOpacity style={styles.ratingAdvisoryCard} activeOpacity={0.85} onPress={() => navigation.navigate('RatingsFeedback')}>
+              <AlertCircleIcon size={18} color={Colors.error} />
+              <Text style={styles.ratingAdvisoryText}>Your rating has dropped low. Tap to see recent feedback.</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* M7/FR-7.3 — visible whenever there's a COD balance to track/remit. */}
+          {!!cashInHand && cashInHand.cashInHandPaise > 0 && (
+            <TouchableOpacity style={styles.cashInHandCard} activeOpacity={0.85} onPress={() => navigation.navigate('Earnings')}>
+              <View style={styles.cashInHandIconWrap}>
+                <RupeeIcon size={18} color={Colors.cod} />
+              </View>
+              <View style={styles.activeTextWrap}>
+                <Text style={styles.cashInHandLabel}>Cash in Hand</Text>
+                <Text style={styles.cashInHandValue}>{formatRupees(cashInHand.cashInHandPaise)}</Text>
+              </View>
+              {cashInHand.canRemit && <Text style={styles.cashInHandRemitHint}>Remit now →</Text>}
+            </TouchableOpacity>
+          )}
 
           {summary?.activeDelivery ? (
             <TouchableOpacity style={styles.activeCard} activeOpacity={0.85} onPress={handleActiveDeliveryPress}>
@@ -368,6 +467,26 @@ const styles = StyleSheet.create({
     width: SW - 48,
     marginBottom: 20,
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  avatarBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1.4,
+    borderColor: Colors.border,
+    backgroundColor: Colors.infoBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+  },
   greeting: {
     fontSize: 20,
     fontWeight: '800',
@@ -398,6 +517,40 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.textSecondary,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  bellBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.4,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: Colors.cream,
+  },
+  bellBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: Colors.white,
+  },
   toggleWrap: {
     alignItems: 'flex-end',
   },
@@ -414,6 +567,28 @@ const styles = StyleSheet.create({
     width: SW - 48,
     gap: 10,
     marginBottom: 18,
+  },
+  statTileTouchable: {
+    flex: 1,
+  },
+
+  ratingAdvisoryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: SW - 48,
+    borderWidth: 1.4,
+    borderColor: Colors.error,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 14,
+    padding: 12,
+    gap: 10,
+    marginBottom: 14,
+  },
+  ratingAdvisoryText: {
+    flex: 1,
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: Colors.error,
   },
   statTile: {
     flex: 1,
@@ -436,6 +611,42 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     marginTop: 2,
+  },
+
+  cashInHandCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: SW - 48,
+    borderWidth: 1.4,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 14,
+  },
+  cashInHandIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: Colors.infoBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  cashInHandLabel: {
+    fontSize: 11.5,
+    color: Colors.textSecondary,
+  },
+  cashInHandValue: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    marginTop: 1,
+  },
+  cashInHandRemitHint: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.cod,
   },
 
   activeCard: {

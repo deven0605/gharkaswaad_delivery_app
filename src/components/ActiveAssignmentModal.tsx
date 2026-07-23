@@ -24,6 +24,10 @@ function formatRupees(paise: number): string {
 export default function ActiveAssignmentModal({ activeDelivery, isCancelling, cancelError, onClose, onConfirmCancel }: Props) {
   const [isRaisingCancellation, setIsRaisingCancellation] = useState(false);
   const [reason, setReason] = useState('');
+  // M5 — the backend only allows requestCancellation while still ACCEPTED
+  // (see DeliveryAssignmentServiceImpl); once the partner has arrived at the
+  // kitchen or picked up, cancelling requires a support flow, not this modal.
+  const canCancel = activeDelivery.status === 'ACCEPTED';
 
   return (
     <Modal visible transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
@@ -106,14 +110,16 @@ export default function ActiveAssignmentModal({ activeDelivery, isCancelling, ca
               <TouchableOpacity style={[styles.btn, styles.secondaryBtn]} activeOpacity={0.85} onPress={onClose}>
                 <Text style={styles.secondaryBtnText}>Close</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.btn, styles.dangerOutlineBtn]}
-                activeOpacity={0.85}
-                onPress={() => setIsRaisingCancellation(true)}
-              >
-                <DeliveryBoxIcon size={16} color={Colors.error} />
-                <Text style={styles.dangerOutlineBtnText}>Cancel Delivery</Text>
-              </TouchableOpacity>
+              {canCancel && (
+                <TouchableOpacity
+                  style={[styles.btn, styles.dangerOutlineBtn]}
+                  activeOpacity={0.85}
+                  onPress={() => setIsRaisingCancellation(true)}
+                >
+                  <DeliveryBoxIcon size={16} color={Colors.error} />
+                  <Text style={styles.dangerOutlineBtnText}>Cancel Delivery</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>

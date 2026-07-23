@@ -303,3 +303,67 @@ export function DeliveryBoxIcon({ size = 18, color = Colors.textPrimary }: IconP
     </Svg>
   );
 }
+
+// ── M5 Pickup Navigation & Verification ─────────────────────────────────────
+
+export function PhoneCallIcon({ size = 18, color = Colors.white }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M6.5 3h2.7l1.4 4-2 1.6a11.3 11.3 0 005.8 5.8l1.6-2 4 1.4v2.7c0 1-.8 1.8-1.8 1.7-8-.6-13.9-6.5-14.5-14.4A1.8 1.8 0 016.5 3z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
+export function NavigationArrowIcon({ size = 20, color = Colors.white }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 2l7 19-7-4-7 4 7-19z" fill={color} />
+    </Svg>
+  );
+}
+
+export function QrCodeIcon({ size = 20, color = Colors.brandGreen }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 4h6v6H4V4z" stroke={color} strokeWidth={1.6} strokeLinejoin="round" />
+      <Path d="M14 4h6v6h-6V4z" stroke={color} strokeWidth={1.6} strokeLinejoin="round" />
+      <Path d="M4 14h6v6H4v-6z" stroke={color} strokeWidth={1.6} strokeLinejoin="round" />
+      <Path d="M14 14h2.5M14 17.5h2.5M14 20.5h2.5M17.5 14v2.5M20.5 14v6M17.5 17.5h3M17.5 20.5h3" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+// ── M12 Notifications ───────────────────────────────────────────────────────
+
+export function BellIcon({ size = 20, color = Colors.textPrimary }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M6 10a6 6 0 0112 0c0 4 1.5 5.5 2 6.5H4c.5-1 2-2.5 2-6.5z"
+        stroke={color}
+        strokeWidth={1.7}
+        strokeLinejoin="round"
+      />
+      <Path d="M9.5 19.5a2.5 2.5 0 005 0" stroke={color} strokeWidth={1.7} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function KeypadIcon({ size = 20, color = Colors.brandGreen }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={6} cy={6} r={1.6} fill={color} />
+      <Circle cx={12} cy={6} r={1.6} fill={color} />
+      <Circle cx={18} cy={6} r={1.6} fill={color} />
+      <Circle cx={6} cy={12} r={1.6} fill={color} />
+      <Circle cx={12} cy={12} r={1.6} fill={color} />
+      <Circle cx={18} cy={12} r={1.6} fill={color} />
+      <Circle cx={6} cy={18} r={1.6} fill={color} />
+      <Circle cx={12} cy={18} r={1.6} fill={color} />
+      <Circle cx={18} cy={18} r={1.6} fill={color} />
+    </Svg>
+  );
+}

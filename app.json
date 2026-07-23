@@ -48,6 +48,12 @@
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "ThaliCloud Partner needs camera access to scan the pickup QR code shown by the kitchen."
+        }
       ]
     ]
   }
